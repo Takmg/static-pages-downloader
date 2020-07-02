@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30225.117
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StaticPagesDownloader", "StaticPagesDownloader\StaticPagesDownloader.csproj", "{9661B4E4-9E65-4B03-BCD9-141DA95EAA6A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CommonLibrary", "CommonLibrary\CommonLibrary.csproj", "{3CF11607-4E9C-4FAD-9EFE-358D2CD94DE6}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{9661B4E4-9E65-4B03-BCD9-141DA95EAA6A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9661B4E4-9E65-4B03-BCD9-141DA95EAA6A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9661B4E4-9E65-4B03-BCD9-141DA95EAA6A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9661B4E4-9E65-4B03-BCD9-141DA95EAA6A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3CF11607-4E9C-4FAD-9EFE-358D2CD94DE6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3CF11607-4E9C-4FAD-9EFE-358D2CD94DE6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3CF11607-4E9C-4FAD-9EFE-358D2CD94DE6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3CF11607-4E9C-4FAD-9EFE-358D2CD94DE6}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {4CBFDBF1-6301-4484-A322-E5B64FC66E8F}
+	EndGlobalSection
+EndGlobal

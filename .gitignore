@@ -1,0 +1,27 @@
+# User-specific files
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.bin
+*.bin.h
+
+# Build results
+[Ll]ibrary/
+[Tt]mp/
+[Dd]ebug/
+[Dd]ebugPublic/base_sources
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ee]xternal-library/base_sources
+[Xx]output
+
+# VS Directory
+*.vs/
+packages/

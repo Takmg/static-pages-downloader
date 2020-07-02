@@ -1,0 +1,10 @@
+# visual studio files
+*.sln       text eol=lf
+*.csproj    text eol=lf
+*.vcxproj   text eol=lf
+
+# code file
+*.cs        text eol=lf
+
+
+
