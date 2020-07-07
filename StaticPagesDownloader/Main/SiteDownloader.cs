@@ -47,7 +47,7 @@ namespace StaticPagesDownloader.Main
         /// </summary>
         private readonly Dictionary<string, string> _analyzeTags = new Dictionary<string, string>()
         {
-            { "a" , "href" },{ "img" , "src" },{ "script" , "src" },{ "link" , "href" },
+            { "a" , "href" },{ "img" , "src" },{ "script" , "src" },{ "link" , "href" },{ "li","data-thumb"},
         };
 
         /// <summary>
@@ -111,6 +111,9 @@ namespace StaticPagesDownloader.Main
                 res = DownloadRecursive(_settings.DownloadUri, _settings.SearchDepth, maxDepth);
             }
 
+            // Rootファイルの作成
+            CreateTopPage(res);
+
             // 時間計測停止
             st.Stop();
             _logger.WriteLine($"HTMLダウンロード数   => {_htmlDepth.Count}");
@@ -118,6 +121,28 @@ namespace StaticPagesDownloader.Main
             _logger.WriteLine($"かかった時間 => {st.Elapsed}");
             _logger.WriteSeparator();
             _logger.WriteLine();
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        private void CreateTopPage( Uri res)
+        {
+            // HTMLTemplate
+            var relativePath = new Uri(_settings.SaveRootDir.ToString()).MakeRelativeUri(res);
+            string HtmlTemplate = $@"
+<!DOCTYPE html> 
+<html>
+    <head>
+        <title>Jump</title>
+        <meta http-equiv=""Refresh"" content=""0;URL={relativePath}"">
+    </head>
+    <body>
+        <a href={relativePath}>jumpしない場合、ここをクリック</a>
+    </body>
+</html>";
+            var saveFilePath = new Uri(_settings.SaveRootDir, "./index.html").OriginalString;
+            File.WriteAllText(saveFilePath, HtmlTemplate);
         }
 
         /// <summary>
@@ -144,6 +169,9 @@ namespace StaticPagesDownloader.Main
 
             try
             {
+                // 対象URIを無視する
+                if (IsIgnoreList(targetUri)) { return targetUri; }
+
                 // HTMLDocumentを取得する
                 var htmlDoc = FetchHtmlDocument(targetUri);
                 if (htmlDoc == null) { return targetUri; }
@@ -176,11 +204,13 @@ namespace StaticPagesDownloader.Main
                     ConvertFile(path, callbackUri);
 
                     // ログ出力
-                    _logger.WriteLine($"【保存完了】 階層 => {depth} , 使用メモリ => {_process.WorkingSet64 / 1024 / 1024}MB");
-                    _logger.WriteLine($" {path.SiteUri}");
-                    _logger.WriteLine($" {path.ExportPathString}");
-                    _logger.WriteLine();
-
+                    lock (_logger)
+                    {
+                        _logger.WriteLine($"【保存完了】 階層 => {depth} , 使用メモリ => {_process.WorkingSet64 / 1024 / 1024}MB");
+                        _logger.WriteLine($" {path.SiteUri}");
+                        _logger.WriteLine($" {path.ExportPathString}");
+                        _logger.WriteLine();
+                    }
                     // 再帰処理を行う
                     return path.ExportPathUri;
                 }
@@ -188,7 +218,7 @@ namespace StaticPagesDownloader.Main
                 else
                 {
                     // 無視するURIだった場合は何もしない
-                    if (IsIgnoreUri(targetUri)) { return targetUri; }
+                    if (IsIgnoreHtml(targetUri)) { return targetUri; }
 
                     // パスの作成を行う
                     var path = new SPath(_settings, targetUri, false);
@@ -261,25 +291,33 @@ namespace StaticPagesDownloader.Main
                     {
                         Directory.CreateDirectory(path.ExportDir);
                         htmlDoc.Save(path.ExportPathString, _settings.HtmlEncoding);
+                        htmlDoc = null;
                     }
 
                     // ログ出力
-                    _logger.WriteLine($"【保存完了】 階層 => {depth} , 使用メモリ => {_process.WorkingSet64 / 1024 / 1024}MB");
-                    _logger.WriteLine($" {path.SiteUri}");
-                    _logger.WriteLine($" {path.ExportPathString}");
-                    _logger.WriteLine();
-
+                    lock (_logger)
+                    {
+                        GC.Collect();
+                        GC.WaitForFullGCComplete();
+                        _logger.WriteLine($"【保存完了】 階層 => {depth} , 使用メモリ => {_process.WorkingSet64 / 1024 / 1024}MB");
+                        _logger.WriteLine($" {path.SiteUri}");
+                        _logger.WriteLine($" {path.ExportPathString}");
+                        _logger.WriteLine();
+                    }
                     return path.ExportPathUri;
                 }
             }
             catch (Exception e)
             {
                 // ログ出力
-                _logger.WriteSeparator();
-                _logger.WriteLine($"【例外処理】 : {e.Message}");
-                _logger.WriteLine($"             : {targetUri.OriginalString}");
-                _logger.WriteLine($"{e.StackTrace}");
-                _logger.WriteSeparator();
+                lock (_logger)
+                {
+                    _logger.WriteSeparator();
+                    _logger.WriteLine($"【例外処理】 : {e.Message}");
+                    _logger.WriteLine($"             : {targetUri.OriginalString}");
+                    _logger.WriteLine($"{e.StackTrace}");
+                    _logger.WriteSeparator();
+                }
             }
 
             // 
@@ -341,6 +379,7 @@ namespace StaticPagesDownloader.Main
         private string ConvertJsText(string jsText, SPath path, Func<Uri, string> callback)
         {
             jsText = new JSBeautify(jsText, new JSBeautifyOptions()).GetResult();
+            jsText = $"\n{jsText}\n";
             jsText = ScriptFunc.ConvertJsUrl(jsText, path.SiteUri, callback);
             return jsText;
         }
@@ -362,7 +401,7 @@ namespace StaticPagesDownloader.Main
             {
                 sheet.ToCss(tw, new ReadableStyleFormatter());
                 tw.Flush();
-                styleText = tw.ToString();
+                //styleText = tw.ToString();
             }
 
             // StyleのURL部分書き換え
@@ -457,21 +496,46 @@ namespace StaticPagesDownloader.Main
         /// 無視するURIか確認
         /// </summary>
         /// <returns></returns>
-        private bool IsIgnoreUri(Uri uri)
+        private bool IsIgnoreHtml(Uri uri)
         {
             // 保存先対象のリソースが保存ダウンロードURI配下でない場合はダウンロード続行
             // ・ホストが同一か、パスが配下かの確認を行っている。
             if (_settings.DownloadUri.Host != uri.Host) { return true; }
             if (!uri.LocalPath.StartsWith(_settings.DownloadUri.LocalPath)) { return true; }
 
-            // ダウンロードURIからの相対パスを取得
-            var relativePath = uri.PathAndQuery.Substring(_settings.DownloadUri.LocalPath.Length);
-            if (!relativePath.StartsWith("/")) { relativePath = "/" + relativePath; }
-
-            // 相対パス内に無視するURIが含まれている場合は無視する
-            if (_settings.IgnoreList.Any(e => relativePath.Contains(e))) { return true; }
-
             // ここまでくる場合は何もしない
+            return false;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        private bool IsIgnoreList(Uri uri)
+        {
+            // ignore
+            var ignoreUri = _settings.IgnoreList.Where(e => e.StartsWith("//")).Select(e => new Uri(_settings.DownloadUri, e));
+            var ignoreUri2 = _settings.IgnoreList.Where(e => e.StartsWith("/") && !e.StartsWith("//")).Select(e => new Uri(_settings.DownloadUri, e));
+            var ignorePath = _settings.IgnoreList.Where(e => !e.StartsWith("/"));
+
+            // 無視リスト内に現在のホストが存在する場合は無視
+            if (ignoreUri.Any(e => e.Host == uri.Host) &&
+                ignoreUri.Any(e => uri.AbsolutePath.StartsWith(e.AbsolutePath))) 
+            { 
+                return true; 
+            }
+
+            // 無視リスト内に現在のパスが存在する場合は無視
+            if (ignoreUri2.Any(e => uri.AbsolutePath.StartsWith(e.AbsolutePath))) { return true; }
+
+            // DownloadUri配下に無視するパスがある場合はスキップ
+            if (uri.Host == _settings.DownloadUri.Host && 
+               uri.PathAndQuery.StartsWith(_settings.DownloadUri.AbsolutePath) )
+            {
+                var p = uri.PathAndQuery.Substring(_settings.DownloadUri.AbsolutePath.Length);
+                if (ignorePath.Any(e => p.Contains(e))) { return true; }
+            }
+
             return false;
         }
     }
