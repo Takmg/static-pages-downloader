@@ -1,4 +1,5 @@
 ﻿using System.IO;
+using System.Linq;
 using System.Text;
 using YamlDotNet.RepresentationModel;
 
@@ -26,9 +27,10 @@ namespace CommonLibrary.Lib
         }
 
         /// <summary>
-        /// 設定ファイルを取得
+        /// 
         /// </summary>
-        public string ReadString(string key)
+        /// <param name="key"></param>
+        private YamlNode Read(string key)
         {
             try
             {
@@ -40,8 +42,36 @@ namespace CommonLibrary.Lib
 
                     // 
                     var mapping = (YamlMappingNode)yaml.Documents[0].RootNode[RootNodeName];
-                    return ((YamlScalarNode)mapping.Children[new YamlScalarNode(key)])?.Value;
+                    return mapping.Children[new YamlScalarNode(key)];
                 }
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// 設定ファイルを取得
+        /// </summary>
+        public string ReadString(string key)
+        {
+            return (Read(key) as YamlScalarNode)?.Value ?? string.Empty;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        public string[] ReadArray(string key)
+        {
+            try
+            {
+                // アイテムを取得する
+                var items = (Read(key) as YamlSequenceNode) ?? new YamlSequenceNode();
+
+                // 配列を返す
+                return items.Children.Select(e => e.ToString()).ToArray();
             }
             catch
             {

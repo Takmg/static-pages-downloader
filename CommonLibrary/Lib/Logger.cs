@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
 using System.Text;
 
@@ -25,9 +26,14 @@ namespace CommonLibrary.Lib
         private bool ConsoleOutputFlag { get; set; }
 
         /// <summary>
-        /// 出力パス
+        /// 
         /// </summary>
         public string ExportPath { get; set; }
+
+        /// <summary>
+        /// ロックオブジェクト
+        /// </summary>
+        private readonly object _lockObj = new object();
 
         /// <summary>
         /// コンストラクタ
@@ -54,18 +60,30 @@ namespace CommonLibrary.Lib
         /// <param name="sa"></param>
         public void WriteLine(string value)
         {
-            // コンソールログ出力を実施
-            if (ConsoleOutputFlag) { Console.WriteLine(value); }
-
             // 文字コードを指定
-            Encoding enc = Encoding.GetEncoding("UTF-8");
+            var enc = Encoding.GetEncoding("UTF-8");
 
-            // StreamWriterを実行
-            string loggerPath = $"{ExportPath}/log";
-            Directory.CreateDirectory(loggerPath);
-            using (StreamWriter writer = new StreamWriter($"{loggerPath}/{FileName}", true, enc))
+            // 出力パスの指定
+            var loggerPath = $"{ExportPath}/log";
+
+            lock (_lockObj)
             {
-                writer.WriteLine(value);
+                // ディレクトリの作成
+                Directory.CreateDirectory(loggerPath);
+
+                // StreamWriterを実行
+                using (var writer = new StreamWriter($"{loggerPath}/{FileName}", true, enc))
+                {
+                    writer.WriteLine(value);
+                }
+
+                // コンソールログ出力を実施
+                if (ConsoleOutputFlag) { Console.WriteLine(value); }
+
+#if DEBUG
+                // Visual StudioデバッグWindowに出力する
+                Debug.WriteLine(value);
+#endif
             }
         }
 
