@@ -1,9 +1,30 @@
+# general file
+.*            text eol=lf
+*.txt         text eol=lf
+*.md          text eol=lf
+*-LICENSE     text eol=lf
+*.json        text eol=lf
+*.sh          text eol=lf
+
+# ruby file
+*.rb          text eol=lf
+*.ru          text eol=lf
+Gemfile       text eol=lf linguist-language=Ruby
+Gemfile.lock  text eol=lf linguist-language=Ruby
+Rakefile      text eol=lf linguist-language=Ruby
+
+# html file
+*.html        text eol=lf
+
+# setting file
+*.yml         text eol=lf
+
 # visual studio files
 *.sln       text eol=lf
 *.csproj    text eol=lf
 *.vcxproj   text eol=lf
 
-# code file
+# c-sharp code file
 *.cs        text eol=lf
 
 
