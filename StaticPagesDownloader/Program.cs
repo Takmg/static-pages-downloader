@@ -48,7 +48,7 @@ namespace StaticPagesDownloader
             }
             catch (Exception e)
             {
-                logger.WriteLine($"【例外処理】：{e.Message}");
+                logger.WriteLine($"【例外処理】 : {e.Message}");
             }
 
         }
