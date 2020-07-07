@@ -38,6 +38,7 @@ namespace StaticPagesDownloader
 
             // ロガーの作成
             var logger = new Logger();
+            logger.ExportPath = Directory.GetCurrentDirectory();
 
             try
             {

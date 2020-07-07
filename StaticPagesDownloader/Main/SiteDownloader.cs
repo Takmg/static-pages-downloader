@@ -76,6 +76,7 @@ namespace StaticPagesDownloader.Main
             _logger = logger;
             _settings = gsettings;
 
+            // CSXファイルのコンパイル処理
             _logger.WriteLine("★ダウンロード準備中...");
             _logger.WriteSeparator();
             HookFunc = CSScript
@@ -103,8 +104,12 @@ namespace StaticPagesDownloader.Main
             _logger.WriteLine("★HTMLのダウンロード開始");
             _logger.WriteSeparator();
 
-            // 再帰的に処理を行う
-            var res = DownloadRecursive(_settings.DownloadUri, _settings.SearchDepth);
+            // 再帰的に処理を行う(トップ階層から順番にサイトを何度も巡回するが、この方が効率的)
+            Uri res = null;
+            for (int i = _settings.SearchDepth - 1; i >= 0; i--)
+            {
+                res = DownloadRecursive(_settings.DownloadUri, _settings.SearchDepth, i);
+            }
 
             // 時間計測停止
             st.Stop();
@@ -118,7 +123,7 @@ namespace StaticPagesDownloader.Main
         /// <summary>
         /// 
         /// </summary>
-        private Uri DownloadRecursive(Uri targetUri, int depth)
+        private Uri DownloadRecursive(Uri targetUri, int depth, int maxDepth)
         {
             // ダウンロードメソッド用内部関数
             Func<Uri, string> callbackUri = (sourceUri) =>
@@ -127,7 +132,7 @@ namespace StaticPagesDownloader.Main
                 var sourcePath = new SPath(_settings, targetUri, false);
 
                 // ダウンロードを行う
-                var savePathUri = DownloadRecursive(sourceUri, depth - 1);
+                var savePathUri = DownloadRecursive(sourceUri, depth - 1, maxDepth);
 
                 // HTTP通信だった場合、そのまま返す
                 if (!savePathUri.IsFile) { return savePathUri.ToString(); }
@@ -143,6 +148,7 @@ namespace StaticPagesDownloader.Main
                 var htmlDoc = FetchHtmlDocument(targetUri);
                 if (htmlDoc == null) { return targetUri; }
 
+                // HTMLノードを取得する
                 var htmlNodes = htmlDoc.DocumentNode.SelectNodes("//html");
 
                 // 非HTMLだった場合
@@ -170,9 +176,10 @@ namespace StaticPagesDownloader.Main
                     ConvertFile(path, callbackUri);
 
                     // ログ出力
-                    _logger.WriteLine($"【保存完了】 : ");
+                    _logger.WriteLine($"【保存完了】 階層 => {depth} , 使用メモリ => {_process.WorkingSet64 / 1024 / 1024}MB");
                     _logger.WriteLine($" {path.SiteUri}");
                     _logger.WriteLine($" {path.ExportPathString}");
+                    _logger.WriteLine("");
 
                     // 再帰処理を行う
                     return path.ExportPathUri;
@@ -181,7 +188,7 @@ namespace StaticPagesDownloader.Main
                 else
                 {
                     // 深さが0以下や無視するURIだった場合は何もしない
-                    if (depth <= 0 || IsIgnoreUri(targetUri)) { return targetUri; }
+                    if (depth <= maxDepth || IsIgnoreUri(targetUri)) { return targetUri; }
 
                     // パスの作成を行う
                     var path = new SPath(_settings, targetUri, false);
@@ -207,7 +214,7 @@ namespace StaticPagesDownloader.Main
                     }
 
                     // 全ノードを巡回する
-                    var options = new ParallelOptions() { MaxDegreeOfParallelism = depth == 2 && _settings.UseThread ? -1 : 1 };
+                    var options = new ParallelOptions() { MaxDegreeOfParallelism = _settings.UseThread && (depth - maxDepth == 1) ? -1 : 1 };
                     Parallel.ForEach(nodes, options, (node) =>
                     {
                         // リンク先の取得/存在しない場合は何もしない
@@ -249,9 +256,10 @@ namespace StaticPagesDownloader.Main
                     }
 
                     // ログ出力
-                    _logger.WriteLine($"【保存完了】");
+                    _logger.WriteLine($"【保存完了】 階層 => {depth} , 使用メモリ => {_process.WorkingSet64 / 1024 / 1024}MB");
                     _logger.WriteLine($" {path.SiteUri}");
                     _logger.WriteLine($" {path.ExportPathString}");
+                    _logger.WriteLine("");
 
                     return path.ExportPathUri;
                 }
@@ -427,7 +435,7 @@ namespace StaticPagesDownloader.Main
                     // 履歴と比較して、現在の深度が深い場合は更新する。
                     // それ以外は抜ける。
                     var historyDepth = _htmlDepth[uri];
-                    if (historyDepth > depth) { return false; }
+                    if (historyDepth >= depth) { return false; }
                 }
 
                 // 深度は以前より浅くなる。
