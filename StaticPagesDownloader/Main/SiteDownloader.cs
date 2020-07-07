@@ -88,7 +88,7 @@ namespace StaticPagesDownloader.Main
                 .LoadMethod(File.ReadAllText("./Script/CScriptConverter.csx"));
             _logger.WriteLine("CScriptConverter.csxの読み込み完了");
             _logger.WriteSeparator();
-            _logger.WriteLine("");
+            _logger.WriteLine();
         }
 
         /// <summary>
@@ -106,9 +106,9 @@ namespace StaticPagesDownloader.Main
 
             // 再帰的に処理を行う(トップ階層から順番にサイトを何度も巡回するが、この方が効率的)
             Uri res = null;
-            for (int i = _settings.SearchDepth - 1; i >= 0; i--)
+            for (int maxDepth = _settings.SearchDepth - 1; maxDepth >= 0; maxDepth--)
             {
-                res = DownloadRecursive(_settings.DownloadUri, _settings.SearchDepth, i);
+                res = DownloadRecursive(_settings.DownloadUri, _settings.SearchDepth, maxDepth);
             }
 
             // 時間計測停止
@@ -117,7 +117,7 @@ namespace StaticPagesDownloader.Main
             _logger.WriteLine($"非HTMLダウンロード数 => {_isDownloadedResources.Count}");
             _logger.WriteLine($"かかった時間 => {st.Elapsed}");
             _logger.WriteSeparator();
-            _logger.WriteLine("");
+            _logger.WriteLine();
         }
 
         /// <summary>
@@ -179,7 +179,7 @@ namespace StaticPagesDownloader.Main
                     _logger.WriteLine($"【保存完了】 階層 => {depth} , 使用メモリ => {_process.WorkingSet64 / 1024 / 1024}MB");
                     _logger.WriteLine($" {path.SiteUri}");
                     _logger.WriteLine($" {path.ExportPathString}");
-                    _logger.WriteLine("");
+                    _logger.WriteLine();
 
                     // 再帰処理を行う
                     return path.ExportPathUri;
@@ -187,19 +187,24 @@ namespace StaticPagesDownloader.Main
                 // HTMLだった場合
                 else
                 {
-                    // 深さが0以下や無視するURIだった場合は何もしない
-                    if (depth <= maxDepth || IsIgnoreUri(targetUri)) { return targetUri; }
+                    // 無視するURIだった場合は何もしない
+                    if (IsIgnoreUri(targetUri)) { return targetUri; }
 
                     // パスの作成を行う
                     var path = new SPath(_settings, targetUri, false);
                     path.ReplaceToHtmlPath();
 
-                    // 対象のパスを取得
-                    if (!UpdateHtmlDepth(targetUri, depth)) { return path.ExportPathUri; }
+                    // 深さが探索以上の深さになってしまった場合や既に浅いところで解析済みだった場合は
+                    // 出力パスを返す
+                    if (depth <= maxDepth || !UpdateHtmlDepth(targetUri, depth)) { return path.ExportPathUri; }
 
-                    // 探索ノードを全て取得する
+                    // ファイル保存済みだった場合、簡易的な解析を行う
+                    var analyzed = false;
+                    lock (_fileLockObj) { analyzed = File.Exists(path.ExportPathString); }
+
+                    // 探索ノードを全て取得する(解析済みの場合はAタグのみを解析する)
                     IEnumerable<(HtmlNode, string)> nodes = new List<(HtmlNode, string)>();
-                    foreach (var tags in _analyzeTags)
+                    foreach (var tags in _analyzeTags.Where(e => analyzed ? e.Key == "a" : true))
                     {
                         var node = htmlDoc.DocumentNode.SelectNodes($"//{tags.Key}");
                         var nodeVal = node?.Select(e => (e, e.GetAttributeValue(tags.Value, string.Empty)));
@@ -232,6 +237,9 @@ namespace StaticPagesDownloader.Main
                         node.Item1.SetAttributeValue(_analyzeTags[node.Item1.Name], relativePath);
                     });
 
+                    // 解析済みなら以降の処理を省く
+                    if (analyzed) { return path.ExportPathUri; }
+
                     // HTMLのJavaScriptの書き換え
                     var jsNodes = htmlDoc.DocumentNode.SelectNodes($"//script");
                     foreach (var js in jsNodes?.ToArray() ?? new HtmlNode[0])
@@ -259,7 +267,7 @@ namespace StaticPagesDownloader.Main
                     _logger.WriteLine($"【保存完了】 階層 => {depth} , 使用メモリ => {_process.WorkingSet64 / 1024 / 1024}MB");
                     _logger.WriteLine($" {path.SiteUri}");
                     _logger.WriteLine($" {path.ExportPathString}");
-                    _logger.WriteLine("");
+                    _logger.WriteLine();
 
                     return path.ExportPathUri;
                 }
@@ -432,10 +440,10 @@ namespace StaticPagesDownloader.Main
             {
                 if (_htmlDepth.ContainsKey(uri))
                 {
-                    // 履歴と比較して、現在の深度が深い場合は更新する。
+                    // 履歴と比較して、現在の深度が浅い場合は更新する。
                     // それ以外は抜ける。
                     var historyDepth = _htmlDepth[uri];
-                    if (historyDepth >= depth) { return false; }
+                    if (historyDepth > depth) { return false; }
                 }
 
                 // 深度は以前より浅くなる。

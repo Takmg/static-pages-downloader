@@ -58,7 +58,7 @@ namespace CommonLibrary.Lib
         /// 書き込みを行う
         /// </summary>
         /// <param name="sa"></param>
-        public void WriteLine(string value)
+        public void WriteLine(string value = "")
         {
             // 文字コードを指定
             var enc = Encoding.GetEncoding("UTF-8");
