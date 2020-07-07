@@ -20,12 +20,10 @@ Rakefile      text eol=lf linguist-language=Ruby
 *.yml         text eol=lf
 
 # visual studio files
-*.sln       text eol=lf
-*.csproj    text eol=lf
-*.vcxproj   text eol=lf
+*.sln         text eol=lf
+*.csproj      text eol=lf
+*.vcxproj     text eol=lf
 
 # c-sharp code file
-*.cs        text eol=lf
-
-
+*.cs          text eol=lf
 
