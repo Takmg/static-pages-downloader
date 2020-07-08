@@ -1,7 +1,7 @@
 ﻿common:
 
   # 保存したいURL
-  download_uri: "http://localhost.example.com"
+  download_uri: "http://example.localhost/"
 
   # 以下無視リスト 
   # bootstrap等 cdnから取ってくるものなどは、ローカルに保存せず元URLを指定する。
@@ -24,7 +24,7 @@
     - "cmd="
   
   # 保存先パス
-  save_path: "./localhost"
+  save_path: "./localhost-saved"
   
   # 検索の深さ
   search_depth: 5
