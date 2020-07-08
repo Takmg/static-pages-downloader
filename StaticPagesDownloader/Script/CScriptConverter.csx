@@ -39,7 +39,7 @@ static string ConverJsAjaxReplace(string jsText, Uri siteUri, Func<Uri, string> 
 /// </summary>
 public string ConvertJsUrl(string jsText, Uri siteUri, Func<Uri, string> callback)
 {
-    // Ajax文字列の削除
+    // AjaxのURL文字列書き換え
     jsText = ConverJsAjaxReplace(jsText, siteUri, callback);
     
     // 
