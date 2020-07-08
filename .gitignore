@@ -27,3 +27,4 @@ bld/
 packages/
 
 /DownloadedHtml/*
+/static-pages-downloader/*
