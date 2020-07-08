@@ -25,3 +25,5 @@ bld/
 # VS Directory
 *.vs/
 packages/
+
+/DownloadedHtml/*
