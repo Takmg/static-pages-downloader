@@ -52,7 +52,7 @@ namespace StaticPagesDownloader.Main
         /// <summary>
         /// HtmlName
         /// </summary>
-        public static readonly string DefaultHtmlName = "original-index.html";
+        public string DefaultHtmlName { get; set; } = "index.html";
 
         /// <summary>
         /// コンストラクタ

@@ -232,6 +232,13 @@ namespace StaticPagesDownloader.Main
                     var analyzed = false;
                     lock (_fileLockObj) { analyzed = File.Exists(path.ExportPathString); }
 
+                    // baseノードを削除する
+                    var baseNodes = htmlDoc.DocumentNode.SelectNodes($"//base");
+                    if (baseNodes.Count > 0)
+                    {
+                        foreach (var node in baseNodes) { node.SetAttributeValue("href", "./"); }
+                    }
+
                     // 探索ノードを全て取得する(解析済みの場合はAタグのみを解析する)
                     IEnumerable<(HtmlNode, string)> nodes = new List<(HtmlNode, string)>();
                     foreach (var tags in _analyzeTags.Where(e => analyzed ? e.Key == "a" : true))
