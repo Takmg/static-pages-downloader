@@ -1,6 +1,5 @@
 ﻿using CommonLibrary.Lib;
 using CSScriptLib;
-using ExCSS;
 using HtmlAgilityPack;
 using JSBeautifyLib;
 using System;
@@ -398,19 +397,6 @@ namespace StaticPagesDownloader.Main
         /// <param name="callback"></param>
         private string ConvertStyleText(string styleText, SPath path, Func<Uri, string> callback)
         {
-            // Stylesheetの読み込み
-            Stylesheet sheet;
-            var byteArray = Encoding.UTF8.GetBytes(styleText);
-            using (var stream = new MemoryStream(byteArray)) { sheet = new StylesheetParser().Parse(stream); }
-
-            // CSSのフォーマット
-            using (var tw = new StringWriter())
-            {
-                sheet.ToCss(tw, new ReadableStyleFormatter());
-                tw.Flush();
-                //styleText = tw.ToString();
-            }
-
             // StyleのURL部分書き換え
             styleText = ConvertStyleUrl(styleText, path, callback);
             return styleText;
