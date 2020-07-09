@@ -3,7 +3,7 @@ All static pages under the site URL will be downloaded.
 
 # How to use
 
-1. Save the file from Release and decompress it.
+1. Save the file from [Release](https://github.com/Takmg/static-pages-downloader/releases) and decompress it.
   
 2. Rewrite settings.yml
    
