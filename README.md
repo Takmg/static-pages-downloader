@@ -7,7 +7,7 @@ All static pages under the site URL will be downloaded.
   
 2. Rewrite settings.yml
    
-    * DownloadUri ... Specify the URL to download.
+    * download_uri ... Specify the URL to download.
     * ignore_list ... Specify a URL that is not saved locally.
     * save_path   ... Save destination directory name.
     * search_depth ... Specify the depth to search.
