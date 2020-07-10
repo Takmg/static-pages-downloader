@@ -12,8 +12,7 @@ All static pages under the site URL will be downloaded.
     * save_path   ... Save destination directory name.
     * search_depth ... Specify the depth to search.
     * encoding ... Specify the Html Encoding.
-    * multithread ... Run with multi-thread(true or false) \
-      Specify false when operating on linux or wsl.
+    * multithread ... Run with multi-thread.(true or false)
     * basetag_relative ... Replace the resource URI and link URI with the relative path from the base tag.(true or false) \
        If false, it will be replaced with the relative path from the HTML file.
 
