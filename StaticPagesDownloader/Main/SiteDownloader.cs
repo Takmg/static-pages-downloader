@@ -31,6 +31,11 @@ namespace StaticPagesDownloader.Main
         private readonly object _fileLockObj = new object();
 
         /// <summary>
+        /// 読み込みのロックオブジェクト
+        /// </summary>
+        private readonly object _webLockObj = new object();
+
+        /// <summary>
         /// Htmlかどうか判断する為のDictionary
         /// </summary>
         private readonly List<Uri> _isDownloadedResources = new List<Uri>();
@@ -454,7 +459,11 @@ namespace StaticPagesDownloader.Main
             // HTMLを取得する
             var htmlWeb = new HtmlWeb();
             htmlWeb.OverrideEncoding = _settings.HtmlEncoding;
-            var func = new Func<bool>(() => { doc = htmlWeb.Load(targetUri.AbsoluteUri); return true; });
+            var func = new Func<bool>(() =>
+            {
+                lock (_webLockObj) { doc = htmlWeb.Load(targetUri.AbsoluteUri); }
+                return true;
+            });
             var success = RetryableAction.Exec(() => DownloadAction.Exec(func));
 
             // HTML取得失敗した場合は何もしない
