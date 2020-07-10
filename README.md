@@ -17,8 +17,11 @@ All static pages under the site URL will be downloaded.
     * basetag_relative ... Replace the resource URI and link URI with the relative path from the base tag.(true or false) \
        If false, it will be replaced with the relative path from the HTML file.
 
-3. Execute the 'run.bat'
+3. Execute the 'run.bat' or '<span>run.sh</span>'
 
+    * Windows version launches 'run.bat'
+    * Linux version or Mac version launches '<span>run.sh</span>'
+    * This application is required .net core 3.1 for [Windows version](https://docs.microsoft.com/dotnet/core/install/windows?tabs=netcore31) or [Linux version](https://docs.microsoft.com/dotnet/core/install/linux) or [Mac version](https://docs.microsoft.com/dotnet/core/install/macos).
     * It can be very time consuming on some sites
 
 # License
