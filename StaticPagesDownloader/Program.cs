@@ -20,6 +20,7 @@ namespace StaticPagesDownloader
             var ignoreList = yaml.ReadArray("ignore_list");
             var encoding = yaml.ReadString("encoding");
             var usethread = yaml.ReadBool("multithread") ?? false;
+            var baseTagRelative = yaml.ReadBool("basetag_relative") ?? false;
             var savePath = yaml.ReadString("save_path");
             if (savePath.StartsWith("./"))
             {
@@ -35,6 +36,7 @@ namespace StaticPagesDownloader
             gsettings.HtmlEncoding = Encoding.GetEncoding(encoding);
             gsettings.IgnoreList = ignoreList;
             gsettings.UseThread = usethread;
+            gsettings.BaseTagRelative = baseTagRelative;
 
             // ロガーの作成
             var logger = new Logger();

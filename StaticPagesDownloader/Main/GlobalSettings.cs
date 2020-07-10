@@ -52,5 +52,10 @@ namespace StaticPagesDownloader.Main
         /// スレッド使用フラグ
         /// </summary>
         public bool UseThread { get; set; }
+
+        /// <summary>
+        /// baseタグからの相対パス使用フラグ
+        /// </summary>
+        public bool BaseTagRelative { get; set; }
     }
 }

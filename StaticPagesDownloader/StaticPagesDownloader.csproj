@@ -27,6 +27,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="Script\CHtmlHook.csx">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="Script\CNodeHook.csx">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

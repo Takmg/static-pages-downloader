@@ -35,3 +35,6 @@
   # マルチスレッドで動作させる。(メモリ不足や変な不具合が出る場合はfalseにする。)
   # 主にtrueにすると若干実行速度が速くなるかもしれない。
   multithread: true
+
+  # baseタグを基準とした相対パスを作成する場合 trueを設定する。
+  basetag_relative: true

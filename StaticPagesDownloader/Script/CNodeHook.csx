@@ -31,14 +31,14 @@ static void removeLazyLoad(HtmlNode node)
 /// </summary>
 /// <param name="node"></param>
 /// <returns></returns>
-public bool Main((HtmlNode, string) node)
+public bool Main(HtmlNode node, string value)
 {
     // 以下の文字列の場合は処理中断
-    if (node.Item2.StartsWith("#")) { return false; }
-    if (node.Item2.Contains("javascript:void(0)")) { return false; }
-    
+    if (value.StartsWith("#")) { return false; }
+    if (value.Contains("javascript:void(0)")) { return false; }
+
     // LazyLoadを削除する処理
-    removeLazyLoad(node.Item1);
+    removeLazyLoad(node);
 
     return true;
 }

@@ -8,7 +8,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
-using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
@@ -52,12 +51,17 @@ namespace StaticPagesDownloader.Main
         /// <summary>
         /// 
         /// </summary>
-        private dynamic HookFunc { get; set; }
+        private dynamic HtmlHookFunc { get; set; }
 
         /// <summary>
         /// 
         /// </summary>
-        private dynamic ScriptFunc { get; set; }
+        private dynamic NodeHookFunc { get; set; }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        private dynamic ScriptHookFunc { get; set; }
 
         /// <summary>
         /// プロセス情報
@@ -78,11 +82,15 @@ namespace StaticPagesDownloader.Main
             // CSXファイルのコンパイル処理
             _logger.WriteLine("★ダウンロード準備中...");
             _logger.WriteSeparator();
-            HookFunc = CSScript
+            HtmlHookFunc = CSScript
+                .RoslynEvaluator
+                .LoadMethod(File.ReadAllText("./Script/CHtmlHook.csx"));
+            _logger.WriteLine("CHtmlHook.csxの読み込み完了");
+            NodeHookFunc = CSScript
                 .RoslynEvaluator
                 .LoadMethod(File.ReadAllText("./Script/CNodeHook.csx"));
             _logger.WriteLine("CNodeHook.csxの読み込み完了");
-            ScriptFunc = CSScript
+            ScriptHookFunc = CSScript
                 .RoslynEvaluator
                 .LoadMethod(File.ReadAllText("./Script/CScriptConverter.csx"));
             _logger.WriteLine("CScriptConverter.csxの読み込み完了");
@@ -125,7 +133,7 @@ namespace StaticPagesDownloader.Main
         /// <summary>
         /// 
         /// </summary>
-        private void CreateTopPage( Uri res)
+        private void CreateTopPage(Uri res)
         {
             // HTMLTemplate
             var relativePath = new Uri(_settings.SaveRootDir.ToString()).MakeRelativeUri(res);
@@ -149,23 +157,6 @@ namespace StaticPagesDownloader.Main
         /// </summary>
         private Uri DownloadRecursive(Uri targetUri, int depth, int maxDepth)
         {
-            // ダウンロードメソッド用内部関数
-            Func<Uri, string> callbackUri = (sourceUri) =>
-            {
-                // ソースパスを作成する
-                var sourcePath = new SPath(_settings, targetUri, false);
-
-                // ダウンロードを行う
-                var savePathUri = DownloadRecursive(sourceUri, depth - 1, maxDepth);
-
-                // HTTP通信だった場合、そのまま返す
-                if (!savePathUri.IsFile) { return savePathUri.ToString(); }
-
-                // HTML書き換え
-                return sourcePath.MakeRelativeString(savePathUri);
-            };
-
-
             try
             {
                 // 対象URIを無視する
@@ -177,6 +168,34 @@ namespace StaticPagesDownloader.Main
 
                 // HTMLノードを取得する
                 var htmlNodes = htmlDoc.DocumentNode.SelectNodes("//html");
+
+                // baseUrlを取得する(BaseTagRelativeフラグがtrueの場合のみ)
+                var baseUrl = !_settings.BaseTagRelative ? string.Empty :
+                    htmlDoc.DocumentNode
+                       .SelectNodes($"//base")
+                       ?.FirstOrDefault()
+                       ?.GetAttributeValue("href", string.Empty);
+
+                // ダウンロードメソッド用内部関数
+                Func<Uri, string> callbackUri = (sourceUri) =>
+                {
+                    // ダウンロードを行う
+                    var savePathUri = DownloadRecursive(sourceUri, depth - 1, maxDepth);
+
+                    // 戻り値がHTTP-URIだった場合、そのまま返す
+                    if (!savePathUri.IsFile) { return savePathUri.ToString(); }
+
+                    // もしbaseUriが存在している場合、baseUri基準で相対パスを取得する
+                    if (!string.IsNullOrEmpty(baseUrl))
+                    {
+                        var basePath = new SPath(_settings, new Uri(_settings.DownloadUri, baseUrl), false);
+                        return basePath.MakeRelativeString(savePathUri);
+                    }
+
+                    // HTML書き換え
+                    var sourcePath = new SPath(_settings, targetUri, false);
+                    return sourcePath.MakeRelativeString(savePathUri);
+                };
 
                 // 非HTMLだった場合
                 if (htmlNodes == null || htmlNodes.Count <= 0)
@@ -210,6 +229,7 @@ namespace StaticPagesDownloader.Main
                         _logger.WriteLine($" {path.ExportPathString}");
                         _logger.WriteLine();
                     }
+
                     // 再帰処理を行う
                     return path.ExportPathUri;
                 }
@@ -231,66 +251,52 @@ namespace StaticPagesDownloader.Main
                     var analyzed = false;
                     lock (_fileLockObj) { analyzed = File.Exists(path.ExportPathString); }
 
-                    // baseノードを削除する
-                    var baseNodes = htmlDoc.DocumentNode.SelectNodes($"//base");
-                    if (baseNodes.Count > 0)
-                    {
-                        foreach (var node in baseNodes) { node.SetAttributeValue("href", "./"); }
-                    }
+                    // HTMLDocumentHook
+                    if (!HtmlHookFunc.Main(targetUri, htmlDoc)) { return path.ExportPathUri; }
 
                     // 探索ノードを全て取得する(解析済みの場合はAタグのみを解析する)
-                    IEnumerable<(HtmlNode, string)> nodes = new List<(HtmlNode, string)>();
-                    foreach (var tags in _analyzeTags.Where(e => analyzed ? e.Key == "a" : true))
-                    {
-                        var node = htmlDoc.DocumentNode.SelectNodes($"//{tags.Key}");
-                        var nodeVal = node?.Select(e => (e, e.GetAttributeValue(tags.Value, string.Empty)));
-                        if (node != null) { nodes = nodes.Concat(nodeVal); }
-                    }
+                    var nodes =
+                        _analyzeTags.Where(e => analyzed ? e.Key == "a" : true)
+                                    .Select(e => (htmlDoc.DocumentNode.SelectNodes($"//{e.Key}"), e.Value))
+                                    .Where(e => e.Item1 != null && e.Item1.Count > 0)
+                                    .Select(e => e.Item1.Select(x => new { Node = x, Value = x.GetAttributeValue(e.Value, string.Empty) }))
+                                    .SelectMany(e => e)
+                                    .ToArray();
 
                     // Aタグの内容を全て深さを-2にして解析済みにする。(深さの奥深くで処理させない為。)
-                    foreach (var node in nodes.Where(e => e.Item1.Name == "a" && !string.IsNullOrEmpty(e.Item2)))
-                    {
-                        var downloadUri = new Uri(targetUri, node.Item2);
-                        UpdateHtmlDepth(downloadUri, depth - 2);
-                    }
+                    nodes.Where(e => e.Node.Name == "a" && e.Value.Length > 0)
+                         .Select(e => new Uri(targetUri, e.Value))
+                         .ForEach(e => UpdateHtmlDepth(e, depth - 2));
 
                     // 全ノードを巡回する
                     var options = new ParallelOptions() { MaxDegreeOfParallelism = _settings.UseThread && (depth - maxDepth == 1) ? -1 : 1 };
-                    Parallel.ForEach(nodes, options, (node) =>
+                    Parallel.ForEach(nodes.Where(e => e.Value.Length > 0), options, (node) =>
                     {
-                        // リンク先の取得/存在しない場合は何もしない
-                        var src = node.Item2;
-                        if (string.IsNullOrEmpty(src)) { return; }
-
                         // 各ノードの処理
-                        if (!HookFunc.Main(node)) { return; }
+                        if (!NodeHookFunc.Main(node.Node, node.Value)) { return; }
 
                         // DownloadURLの作成
-                        var downloadUri = new Uri(targetUri, src);
+                        var downloadUri = new Uri(targetUri, node.Value);
 
                         // 再帰的に処理を行う
                         var relativePath = callbackUri(downloadUri);
-                        node.Item1.SetAttributeValue(_analyzeTags[node.Item1.Name], relativePath);
+                        node.Node.SetAttributeValue(_analyzeTags[node.Node.Name], relativePath);
                     });
 
                     // 解析済みなら以降の処理を省く
                     if (analyzed) { return path.ExportPathUri; }
 
                     // HTMLのJavaScriptの書き換え
-                    var jsNodes = htmlDoc.DocumentNode.SelectNodes($"//script");
-                    foreach (var js in jsNodes?.ToArray() ?? new HtmlNode[0])
-                    {
-                        if (string.IsNullOrEmpty(js.InnerHtml.Trim())) { continue; }
-                        js.InnerHtml = ConvertJsText(js.InnerHtml, path, callbackUri);
-                    }
+                    htmlDoc.DocumentNode.SelectNodes($"//script")
+                           ?.Where(e => e != null)
+                           .Where(e => !string.IsNullOrEmpty(e.InnerHtml.Trim()))
+                           .ForEach(e => e.InnerHtml = ConvertJsText(e.InnerHtml, path, callbackUri));
 
                     // HTMLのスタイルタグ書き換え
-                    var styleNodes = htmlDoc.DocumentNode.SelectNodes($"//style");
-                    foreach (var style in styleNodes?.ToArray() ?? new HtmlNode[0])
-                    {
-                        if (string.IsNullOrEmpty(style.InnerHtml.Trim())) { continue; }
-                        style.InnerHtml = ConvertStyleText(style.InnerHtml, path, callbackUri);
-                    }
+                    htmlDoc.DocumentNode.SelectNodes($"//style")
+                           ?.Where(e => e != null)
+                           .Where(e => !string.IsNullOrEmpty(e.InnerHtml.Trim()))
+                           .ForEach(e => e.InnerHtml = ConvertStyleText(e.InnerHtml, path, callbackUri));
 
                     // HTMLの保存
                     lock (_fileLockObj)
@@ -386,7 +392,7 @@ namespace StaticPagesDownloader.Main
         {
             jsText = new JSBeautify(jsText, new JSBeautifyOptions()).GetResult();
             jsText = $"\n{jsText}\n";
-            jsText = ScriptFunc.ConvertJsUrl(jsText, path.SiteUri, callback);
+            jsText = ScriptHookFunc.ConvertJsUrl(jsText, path.SiteUri, callback);
             return jsText;
         }
 
@@ -513,17 +519,17 @@ namespace StaticPagesDownloader.Main
 
             // 無視リスト内に現在のホストが存在する場合は無視
             if (ignoreUri.Any(e => e.Host == uri.Host) &&
-                ignoreUri.Any(e => uri.AbsolutePath.StartsWith(e.AbsolutePath))) 
-            { 
-                return true; 
+                ignoreUri.Any(e => uri.AbsolutePath.StartsWith(e.AbsolutePath)))
+            {
+                return true;
             }
 
             // 無視リスト内に現在のパスが存在する場合は無視
             if (ignoreUri2.Any(e => uri.AbsolutePath.StartsWith(e.AbsolutePath))) { return true; }
 
             // DownloadUri配下に無視するパスがある場合はスキップ
-            if (uri.Host == _settings.DownloadUri.Host && 
-               uri.PathAndQuery.StartsWith(_settings.DownloadUri.AbsolutePath) )
+            if (uri.Host == _settings.DownloadUri.Host &&
+               uri.PathAndQuery.StartsWith(_settings.DownloadUri.AbsolutePath))
             {
                 var p = uri.PathAndQuery.Substring(_settings.DownloadUri.AbsolutePath.Length);
                 if (ignorePath.Any(e => p.Contains(e))) { return true; }
