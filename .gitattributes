@@ -26,4 +26,4 @@ Rakefile      text eol=lf linguist-language=Ruby
 
 # c-sharp code file
 *.cs          text eol=lf
-
+*.csx         text eol=lf
