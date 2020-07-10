@@ -1,3 +1,5 @@
+@echo off
+
 REM Release.batのディレクトリに移動
 pushd %~dp0
 
@@ -20,6 +22,7 @@ xcopy /Y /e /R StaticPagesDownloader\bin\Release\netcoreapp3.1\publish static-pa
 xcopy /Y /e /R StaticPagesDownloader\bin\Release\netcoreapp3.1\publish\Script static-pages-downloader\Script
 
 REM 不必要なファイルを削除する
+del /F /Q static-pages-downloader\exe\settings.yml
 del /F /Q static-pages-downloader\exe\*.dev.json
 del /F /Q static-pages-downloader\exe\*.exe
 del /F /Q /s static-pages-downloader\exe\Script
