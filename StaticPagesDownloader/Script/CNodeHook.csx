@@ -27,9 +27,10 @@ static void removeLazyLoad(HtmlNode node)
 }
 
 /// <summary>
-/// Main処理
+/// 
 /// </summary>
 /// <param name="node"></param>
+/// <param name="value"></param>
 /// <returns></returns>
 public bool Main(HtmlNode node, string value)
 {

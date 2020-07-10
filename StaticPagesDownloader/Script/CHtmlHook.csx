@@ -5,9 +5,10 @@ using System.Linq;
 using HtmlAgilityPack;
 
 /// <summary>
-/// Main処理
+/// 
 /// </summary>
-/// <param name="node"></param>
+/// <param name="targetUri"></param>
+/// <param name="htmlDoc"></param>
 /// <returns></returns>
 public bool Main(Uri targetUri, HtmlDocument htmlDoc)
 {

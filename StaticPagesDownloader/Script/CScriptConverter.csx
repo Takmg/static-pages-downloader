@@ -5,7 +5,13 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 
-
+/// <summary>
+/// 
+/// </summary>
+/// <param name="jsText"></param>
+/// <param name="siteUri"></param>
+/// <param name="callback"></param>
+/// <returns></returns>
 static string ConverJsAjaxReplace(string jsText, Uri siteUri, Func<Uri, string> callback)
 {
     // Textから該当箇所を読み込み
@@ -33,10 +39,13 @@ static string ConverJsAjaxReplace(string jsText, Uri siteUri, Func<Uri, string> 
     return jsText;
 }
 
-
 /// <summary>
 /// 
 /// </summary>
+/// <param name="jsText"></param>
+/// <param name="siteUri"></param>
+/// <param name="callback"></param>
+/// <returns></returns>
 public string ConvertJsUrl(string jsText, Uri siteUri, Func<Uri, string> callback)
 {
     // AjaxのURL文字列書き換え
