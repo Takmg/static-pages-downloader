@@ -13,6 +13,8 @@ All static pages under the site URL will be downloaded.
     * search_depth ... Specify the depth to search.
     * encoding ... Specify the Html Encoding.
     * multithread ... Run with multi-thread(true or false)
+    * basetag_relative ... Replace the resource URI and link URI with the relative path from the base tag.(true or false) \
+       If false, it will be replaced with the relative path from the HTML file.
 
 3. Execute the 'run.bat'
 
@@ -23,7 +25,7 @@ All static pages under the site URL will be downloaded.
 GNU LESSER GENERAL PUBLIC LICENSE\
 Version 2.1, February 1999
 
-Copyright (C) 2020  Takmg
+Copyright (C) 2020 Takmg
 
 [License](https://github.com/Takmg/static-pages-downloader/blob/master/LICENSE) for this program
 
