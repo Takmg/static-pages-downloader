@@ -69,6 +69,11 @@ namespace StaticPagesDownloader.Main
         private dynamic ScriptHookFunc { get; set; }
 
         /// <summary>
+        /// SavedFiles(Item1 => html , Item2 => Resources)
+        /// </summary>
+        private (int HtmlCount , int ResourceCount) SavedFiles ;
+
+        /// <summary>
         /// プロセス情報
         /// </summary>
         private readonly Process _process = Process.GetCurrentProcess();
@@ -121,15 +126,20 @@ namespace StaticPagesDownloader.Main
             for (int maxDepth = _settings.SearchDepth - 1; maxDepth >= 0; maxDepth--)
             {
                 res = DownloadRecursive(_settings.DownloadUri, _settings.SearchDepth, maxDepth);
+                
+                // GC
+                GC.Collect();
+                GC.WaitForFullGCComplete();
+                GC.WaitForPendingFinalizers();
             }
 
-            // Rootファイルの作成
+            // トップページの作成
             CreateTopPage(res);
 
             // 時間計測停止
             st.Stop();
-            _logger.WriteLine($"HTMLダウンロード数   => {_htmlDepth.Count}");
-            _logger.WriteLine($"非HTMLダウンロード数 => {_isDownloadedResources.Count}");
+            _logger.WriteLine($"HTMLダウンロード数   => {SavedFiles.HtmlCount}");
+            _logger.WriteLine($"非HTMLダウンロード数 => {SavedFiles.ResourceCount}");
             _logger.WriteLine($"かかった時間 => {st.Elapsed}");
             _logger.WriteSeparator();
             _logger.WriteLine();
@@ -235,6 +245,9 @@ namespace StaticPagesDownloader.Main
                         _logger.WriteLine();
                     }
 
+                    // 保存数の加算
+                    lock (_fileLockObj) { ++SavedFiles.ResourceCount; }
+
                     // 再帰処理を行う
                     return path.ExportPathUri;
                 }
@@ -308,14 +321,14 @@ namespace StaticPagesDownloader.Main
                     {
                         Directory.CreateDirectory(path.ExportDir);
                         htmlDoc.Save(path.ExportPathString, _settings.HtmlEncoding);
-                        htmlDoc = null;
                     }
 
+                    // 保存数の加算
+                    lock (_fileLockObj) { ++SavedFiles.HtmlCount; }
+                    
                     // ログ出力
                     lock (_logger)
                     {
-                        GC.Collect();
-                        GC.WaitForFullGCComplete();
                         _logger.WriteLine($"【保存完了】 階層 => {depth} , 使用メモリ => {_process.WorkingSet64 / 1024 / 1024}MB");
                         _logger.WriteLine($" {path.SiteUri}");
                         _logger.WriteLine($" {path.ExportPathString}");
