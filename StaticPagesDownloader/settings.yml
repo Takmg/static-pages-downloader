@@ -19,6 +19,9 @@
     - '//unpkg.com'
     - '//www.googletagmanager.com'
     - '//kit.fontawesome.com'
+    - '//www.facebook.com'
+    - '//facebook.com'
+    - '//twitter.com'
     - '/unknown'
     - 'cmd='
 

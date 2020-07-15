@@ -4,6 +4,7 @@ using HtmlAgilityPack;
 using JSBeautifyLib;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -126,11 +127,12 @@ namespace StaticPagesDownloader.Main
             for (int maxDepth = _settings.SearchDepth - 1; maxDepth >= 0; maxDepth--)
             {
                 res = DownloadRecursive(_settings.DownloadUri, _settings.SearchDepth, maxDepth);
-                
+
                 // GC
-                GC.Collect();
+                GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, true, false);
                 GC.WaitForFullGCComplete();
                 GC.WaitForPendingFinalizers();
+                GC.Collect();
             }
 
             // トップページの作成
@@ -279,11 +281,12 @@ namespace StaticPagesDownloader.Main
                                     .Where(e => e.Item1 != null && e.Item1.Count > 0)
                                     .Select(e => e.Item1.Select(x => new { Node = x, Value = x.GetAttributeValue(e.Value, string.Empty) }))
                                     .SelectMany(e => e)
-                                    .ToArray();
+                                    .ToImmutableArray();
 
                     // Aタグの内容を全て深さを-2にして解析済みにする。(深さの奥深くで処理させない為。)
                     nodes.Where(e => e.Node.Name == "a" && e.Value.Length > 0)
                          .Select(e => new Uri(targetUri, e.Value))
+                         .ToImmutableArray()
                          .ForEach(e => UpdateHtmlDepth(e, depth - 2));
 
                     // 全ノードを巡回する
@@ -308,12 +311,14 @@ namespace StaticPagesDownloader.Main
                     htmlDoc.DocumentNode.SelectNodes($"//script")
                            ?.Where(e => e != null)
                            .Where(e => !string.IsNullOrEmpty(e.InnerHtml.Trim()))
+                           .ToImmutableArray()
                            .ForEach(e => e.InnerHtml = ConvertJsText(e.InnerHtml, path, callbackUri));
 
                     // HTMLのスタイルタグ書き換え
                     htmlDoc.DocumentNode.SelectNodes($"//style")
                            ?.Where(e => e != null)
                            .Where(e => !string.IsNullOrEmpty(e.InnerHtml.Trim()))
+                           .ToImmutableArray()
                            .ForEach(e => e.InnerHtml = ConvertStyleText(e.InnerHtml, path, callbackUri));
 
                     // HTMLの保存
