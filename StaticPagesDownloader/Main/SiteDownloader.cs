@@ -72,7 +72,7 @@ namespace StaticPagesDownloader.Main
         /// <summary>
         /// SavedFiles(Item1 => html , Item2 => Resources)
         /// </summary>
-        private (int HtmlCount , int ResourceCount) SavedFiles ;
+        private (int HtmlCount, int ResourceCount) SavedFiles;
 
         /// <summary>
         /// プロセス情報
@@ -330,7 +330,7 @@ namespace StaticPagesDownloader.Main
 
                     // 保存数の加算
                     lock (_fileLockObj) { ++SavedFiles.HtmlCount; }
-                    
+
                     // ログ出力
                     lock (_logger)
                     {
@@ -545,7 +545,7 @@ namespace StaticPagesDownloader.Main
             var ignorePath = _settings.IgnoreList.Where(e => !e.StartsWith("/"));
 
             // 無視リスト内に現在のホストが存在する場合は無視
-            if (ignoreUri.Any(e => e.Host == uri.Host) &&
+            if (ignoreUri.Any(e => uri.Host.EndsWith(e.Host)) &&
                 ignoreUri.Any(e => uri.AbsolutePath.StartsWith(e.AbsolutePath)))
             {
                 return true;
