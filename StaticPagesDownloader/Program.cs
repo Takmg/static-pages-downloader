@@ -11,6 +11,29 @@ namespace StaticPagesDownloader
 
         static void Main(string[] args)
         {
+            // ロガーの作成
+            var logger = new Logger();
+            logger.ExportPath = Directory.GetCurrentDirectory();
+
+            try
+            {
+                // ダウンロードの実行
+                var pd = new SiteDownloader(logger, CreateSettings());
+                pd.Download();
+            }
+            catch (Exception e)
+            {
+                logger.WriteLine($"【例外処理】 : {e.Message}");
+            }
+
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        private static GlobalSettings CreateSettings()
+        {
             // YAMLインスタンスの作成
             var yaml = new Yaml("settings.yml", "common");
 
@@ -38,21 +61,7 @@ namespace StaticPagesDownloader
             gsettings.UseThread = usethread;
             gsettings.BaseTagRelative = baseTagRelative;
 
-            // ロガーの作成
-            var logger = new Logger();
-            logger.ExportPath = Directory.GetCurrentDirectory();
-
-            try
-            {
-                // ダウンロードの実行
-                var pd = new SiteDownloader(logger, gsettings);
-                pd.Download();
-            }
-            catch (Exception e)
-            {
-                logger.WriteLine($"【例外処理】 : {e.Message}");
-            }
-
+            return gsettings;
         }
     }
 }
